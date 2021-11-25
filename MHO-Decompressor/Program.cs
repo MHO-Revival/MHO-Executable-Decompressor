@@ -1,6 +1,10 @@
 ﻿using Force.Crc32;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Reflection.PortableExecutable;
+using System.Text;
 
 namespace TencentExtractor
 {
@@ -28,40 +32,55 @@ namespace TencentExtractor
             while (!File.Exists(inFilename));
 
             Console.WriteLine("Destination file path :");
-            var outFile = File.Create(Console.ReadLine());
+            var outFile = Console.ReadLine();
 
 
             try
             {
                 var inFileBytes = File.ReadAllBytes(inFilename);
-                BinaryReader reader = new BinaryReader(new MemoryStream(inFileBytes));
+                MemoryStream stream = new MemoryStream(inFileBytes);
+                BinaryReader reader = new BinaryReader(stream);
                 //HACK : work only for the last version (2.0.11.632)
                 //TODO : Change this by the mz header rebuilder
                 var mzHeader = reader.ReadBytes(1024);
 
-                var apHeader = reader.ReadChars(4);
-                var apheaderSize = reader.ReadInt32();
-                var packedSize = reader.ReadInt32();
-                var packed_crc = reader.ReadUInt32();
-                var origin_size = reader.ReadInt32();
-                var origin_crc = reader.ReadUInt32();
+                long currentPos = reader.BaseStream.Position;
+                List<long> compressedPositions = GetCompressedPositions(reader);
 
-                reader.BaseStream.Seek(-24, SeekOrigin.Current);
+                List<byte> finalData = new List<byte>();
+                finalData.AddRange(mzHeader);
 
-                var packedBytes = new MemoryStream(reader.ReadBytes(24 + packedSize));
-                var leftBytes = reader.ReadBytes((int)(reader.BaseStream.Length - reader.BaseStream.Position));
+                for (int i = 0; i < compressedPositions.Count; i++)
+                {
+                    long position = compressedPositions[i];
 
-                var depackedData = appack.DecompressStream(packedBytes);
-                var depacked_crc = Crc32Algorithm.Compute(depackedData, 0, origin_size); 
+                    reader.BaseStream.Seek(position, SeekOrigin.Begin);
+                    var apHeader = reader.ReadChars(4);
+                    var apheaderSize = reader.ReadInt32();
+                    var packedSize = reader.ReadInt32();
+                    var packed_crc = reader.ReadUInt32();
+                    var origin_size = reader.ReadInt32();
+                    var origin_crc = reader.ReadUInt32();
 
-                if (depacked_crc != origin_crc)
-                    throw new InvalidOperationException("Data is not decompressed correctly check if the lib version is correct !");
+                    reader.BaseStream.Seek(-24, SeekOrigin.Current);
 
-                BinaryWriter writer = new BinaryWriter(outFile);
-                writer.Write(mzHeader);
-                writer.Write(depackedData);
-                writer.Write(leftBytes);
-                writer.Flush();
+                    var packedBytes = new MemoryStream(reader.ReadBytes(24 + packedSize));
+
+                    var depackedData = appack.DecompressStream(packedBytes);
+                    var depacked_crc = Crc32Algorithm.Compute(depackedData, 0, origin_size);
+
+                    if (depacked_crc != origin_crc)
+                        throw new InvalidOperationException("Data is not decompressed correctly check if the lib version is correct !");
+
+                    finalData.AddRange(depackedData);
+                    long nextPosition = i + 1 < compressedPositions.Count ? compressedPositions[i + 1] : reader.BaseStream.Length;
+
+                    byte[] bytes = reader.ReadBytes((int)(nextPosition - reader.BaseStream.Position));
+                    finalData.AddRange(bytes);
+
+                }
+
+                File.WriteAllBytes(outFile, finalData.ToArray());
             }
             catch (Exception e)
             {
@@ -70,5 +89,31 @@ namespace TencentExtractor
             }
         }
 
+        private static List<long> GetCompressedPositions(BinaryReader reader)
+        {
+            List<long> compressedPositions = new List<long>();
+            while (reader.BaseStream.CanRead)
+            {
+                try
+                {
+                    if (reader.BaseStream.Position + 4 <= reader.BaseStream.Length)
+                    {
+                        var apHeader = reader.ReadBytes(4);
+                        if (Encoding.ASCII.GetString(apHeader) == "AP32")
+                            compressedPositions.Add(reader.BaseStream.Position - 4);
+
+                        reader.BaseStream.Seek(-3, SeekOrigin.Current);
+                    }
+                    else
+                        break;
+                }
+                catch(Exception e)
+                {
+
+                }
+            }
+
+            return compressedPositions;
+        }
     }
 }

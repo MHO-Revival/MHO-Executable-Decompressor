@@ -23,7 +23,7 @@ namespace IbsenSoftware.aPLib
 			int cbparam
 		);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aP_pack(
 			[In]  byte[] source,
 			[Out] byte[] destination,
@@ -33,25 +33,25 @@ namespace IbsenSoftware.aPLib
 			      int cbparam
 		);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aP_workmem_size(int length);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aP_max_packed_size(int length);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aP_depack_asm(
 			[In]  byte[] source,
 			[Out] byte[] destination
 		);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aP_depack_asm_fast(
 			[In]  byte[] source,
 			[Out] byte[] destination
 		);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aP_depack_asm_safe(
 			[In]  byte[] source,
 			      int srclen,
@@ -59,10 +59,10 @@ namespace IbsenSoftware.aPLib
 			      int dstlen
 		);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aP_crc32([In] byte[] source, int length);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aPsafe_pack(
 			[In]  byte[] source,
 			[Out] byte[] destination,
@@ -72,13 +72,13 @@ namespace IbsenSoftware.aPLib
 			      int cbparam
 		);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aPsafe_check([In] byte[] source);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aPsafe_get_orig_size([In] byte[] source);
 
-		[DllImport("aplib.dll")]
+		[DllImport("./libs/aplib.dll")]
 		public static extern int aPsafe_depack(
 			[In]  byte[] source,
 			      int srclen,

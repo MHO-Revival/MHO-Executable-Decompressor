@@ -87,6 +87,9 @@ namespace TencentExtractor
 
                 Console.WriteLine("Error: {0}", e.ToString());
             }
+
+            Console.WriteLine("Finished, you can close the program !");
+            Console.ReadLine();
         }
 
         private static List<long> GetCompressedPositions(BinaryReader reader)
